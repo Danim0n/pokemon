@@ -1,52 +1,121 @@
 import 'pokemon.dart';
 import 'dart:math';
+import 'dart:io';
+import 'usuario.dart';
 
-class JuegoPokedle {
+class Juego {
   Pokemon? pokemonObjetivo;
   int intentos = 0;
   bool adivinado = false;
+  final Usuario usuario = Usuario();
 
-  Future<void> iniciar() async {
-    print('Adivina el Pokémon (1ra generación)');
-    print('''                        --- REGLAS ---
-Elije un pokemon de la primera generacion (Los primeros 151).
-Segun sus caracteristicas se comparara con un pokemon elejido aleatoriamente.
-En el caso de que alguna de sus caracteristicas sea correcta se maracara con un ✅.
-Si por el contrario no coincide se monstrara ❌.
-Si el pokemon elejido aleatoriamente tiene caracteristicas superiores al ingresado por el usuario se mostrara ❌⬆️ o ❌⬇️ si son inferiores.
-''');
-    
-    var random = Random();
-    int idAleatorio = random.nextInt(151) + 1;
-    
-    pokemonObjetivo = await Pokemon.obtenerPokemonCompleto(idAleatorio);
+  Future<void> iniciarAplicacion() async {
+    await mostrarMenuPrincipal();
   }
 
-  Future<void> comprobarIntento(String nombrePokemon) async {
+  Future<void> mostrarMenuPrincipal() async {
+    while (true) {
+      print('''
+--- MENÚ PRINCIPAL ---
+1. Registrar usuario
+2. Iniciar sesión
+3. Jugar
+4. Salir
+''');
+
+      final opcion = stdin.readLineSync();
+
+      switch (opcion) {
+        case '1':
+          await Usuario.registro();
+          break;
+        case '2':
+          final loginExitoso = await usuario.loggin();
+          if (loginExitoso) {
+            print('Sesión iniciada');
+          } else {
+            print(' Usuario o contraseña incorrectos');
+          }
+          break;
+        case '3':
+          if (usuario.logueado) {
+            await iniciarJuego();
+          } else {
+            print('Acceso denegado: Debes iniciar sesion primero');
+          }
+          break;
+        case '4':
+          print('Saliendo...');
+          exit(0);
+        default:
+          print('Opcion no valida');
+      }
+    }
+  }
+
+  iniciarJuego() async {
+    print('''
+      --- ADIVINA EL POKÉMON ---
+              Reglas:
+- Adivina Pokémon de la 1ra generación (1-151)
+- ✅ = Característica correcta
+- ❌ = Característica incorrecta
+- ❌⬆ = El Pokémon objetivo es mayor
+- ❌⬇ = El Pokémon objetivo es menor
+''');
+
+    Random random = Random();
+    int aleatorio = random.nextInt(151) + 1;
+    pokemonObjetivo = await Pokemon.obtenerPokemonCompleto(aleatorio);
+    adivinado = false;
+    intentos = 0;
+
+    print('Escribe el nombre de un Pokémon de la primera generación:');
+    
+    while (adivinado == false) {
+      final respuesta = stdin.readLineSync()??'';
+      
+      if (respuesta.isEmpty) {
+        print('Escribe un nombre válido');
+        continue;
+      }
+
+      try {
+        await comprobarIntento(respuesta);
+      } catch (e) {
+        print('Error: ${(e)}');
+      }
+    }
+
+    print('Intentos totales: $intentos');
+    print('Presiona Enter para volver al menú...');
+    stdin.readLineSync();
+  }
+
+  comprobarIntento(String nombrePokemon) async {
     intentos++;
     
     try {
-      var pokemonAdivinado = await Pokemon.obtenerPokemonCompletoPorNombre(nombrePokemon);
+      final pokemonAdivinado = await Pokemon.obtenerPokemonCompletoPorNombre(nombrePokemon);
       
       if (pokemonAdivinado.nombre?.toLowerCase() == pokemonObjetivo?.nombre?.toLowerCase()) {
         adivinado = true;
-        print('¡Correcto! ¡Has adivinado el Pokémon!');
+        print('Has adivinado el Pokemon');
         mostrarPokemon(pokemonObjetivo!);
-        print('Intentos: $intentos');
       } else {
         print('Comparación con ${pokemonAdivinado.nombre?.toUpperCase()}:');
         mostrarComparacion(pokemonAdivinado);
+        print('Sigue intentando...');
       }
     } catch (e) {
-      print('Pokémon no encontrado. Intenta de nuevo.');
+      print('Pokemon no encontrado. Intenta con otro nombre.');
     }
   }
 
   void mostrarComparacion(Pokemon adivinado) {
-
     for (int i = 0; i < 2; i++) {
-      String tipo = i < adivinado.tipos.length ? adivinado.tipos[i] : '';
-      String tipoObjetivo = i < pokemonObjetivo!.tipos.length ? pokemonObjetivo!.tipos[i] : '';
+      final tipo = i < adivinado.tipos.length ? adivinado.tipos[i] : '';
+      final tipoObjetivo = i < pokemonObjetivo!.tipos.length ? pokemonObjetivo!.tipos[i] : '';
       
       if (i == 0) print('Tipo: ${tipo == tipoObjetivo ? '✅' : '❌'}');
       if (i == 1 && tipo.isNotEmpty) print('Tipo 2: ${tipo == tipoObjetivo ? '✅' : '❌'}');
@@ -57,29 +126,28 @@ Si el pokemon elejido aleatoriamente tiene caracteristicas superiores al ingresa
     if (adivinado.altura == pokemonObjetivo!.altura) {
       print('Altura: ✅');
     } else {
-      print('Altura: ❌${adivinado.altura! > pokemonObjetivo!.altura! ? ' ⬇' : ' ⬆'}');
+      print('Altura: ❌${adivinado.altura! > pokemonObjetivo!.altura! ? '⬇' : '⬆'}');
     }
     
     if (adivinado.peso == pokemonObjetivo!.peso) {
       print('Peso: ✅');
     } else {
-      print('Peso: ❌${adivinado.peso! > pokemonObjetivo!.peso! ? ' ⬇' : ' ⬆'}');
+      print('Peso: ❌${adivinado.peso! > pokemonObjetivo!.peso! ? '⬇' : '⬆'}');
     }
     
     print('Habitat: ${adivinado.habitat == pokemonObjetivo!.habitat ? '✅' : '❌'}');
-    
-    print('Etapa: ${adivinado.etapaEvolutiva == pokemonObjetivo!.etapaEvolutiva ? '✅' : '❌'}');
+    print('Etapa evolutiva: ${adivinado.etapaEvolutiva == pokemonObjetivo!.etapaEvolutiva ? '✅' : '❌'}');
   }
 
-  static void mostrarPokemon(Pokemon pokemon) {
-    double alturaCm = pokemon.altura! * 10;
-    double pesoKg = pokemon.peso! / 10;
+  void mostrarPokemon(Pokemon pokemon) {
+    final alturaCm = pokemon.altura! * 10;
+    final pesoKg = pokemon.peso! / 10;
     
-    print('--- ${pokemon.nombre?.toUpperCase()} ---');
+    print('${pokemon.nombre?.toUpperCase()}');
     print('Tipos: ${pokemon.tipos.join(', ')}');
     print('Color: ${pokemon.color}');
-    print('Altura: ${alturaCm.toStringAsFixed(1)} cm'); 
-    print('Peso: ${pesoKg.toStringAsFixed(1)} kg'); 
+    print('Altura: ${alturaCm.toStringAsFixed(1)} cm');
+    print('Peso: ${pesoKg.toStringAsFixed(1)} kg');
     print('Habitat: ${pokemon.habitat}');
     print('Etapa evolutiva: ${pokemon.etapaEvolutiva}');
   }

@@ -20,7 +20,6 @@ class Pokemon {
     peso = datos['weight'];
     altura = datos['height'];
     
-    // Obtener tipos
     for (var tipo in datos['types']) {
       tipos.add(tipo['type']['name']);
     }

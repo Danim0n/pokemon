@@ -10,6 +10,7 @@ environment:
 dependencies:
   # path: ^1.8.0
   http: ^0.13.6
+  mysql1: ^0.20.0
 
 dev_dependencies:
   lints: ^5.0.0
