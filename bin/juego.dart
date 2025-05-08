@@ -6,6 +6,7 @@ import 'usuario.dart';
 class Juego {
   Pokemon? pokemonObjetivo;
   int intentos = 0;
+  int vidas = 10;
   bool adivinado = false;
   final Usuario usuario = Usuario();
 
@@ -58,6 +59,7 @@ class Juego {
       --- ADIVINA EL POKÉMON ---
               Reglas:
 - Adivina Pokémon de la 1ra generación (1-151)
+- Tienes 10 intentos
 - ✅ = Característica correcta
 - ❌ = Característica incorrecta
 - ❌⬆ = El Pokémon objetivo es mayor
@@ -72,19 +74,29 @@ class Juego {
 
     print('Escribe el nombre de un Pokémon de la primera generación:');
     
-    while (adivinado == false) {
-      final respuesta = stdin.readLineSync()??'';
-      
-      if (respuesta.isEmpty) {
-        print('Escribe un nombre válido');
-        continue;
+
+      for(int i = vidas; i >= 1; i--){
+
+        final respuesta = stdin.readLineSync()??'';
+        
+        if (respuesta.isEmpty) {
+          print('Escribe un nombre válido');
+          continue;
+        }
+
+        try {
+          await comprobarIntento(respuesta);
+        } catch (e) {
+          print('Error: ${(e)}');
+        }
+
+        if(adivinado){
+          break;
+        }
       }
 
-      try {
-        await comprobarIntento(respuesta);
-      } catch (e) {
-        print('Error: ${(e)}');
-      }
+    if(adivinado == false){
+      print('No has acertado. El pokemon era: ${pokemonObjetivo!.nombre!.toUpperCase()}');
     }
 
     print('Intentos totales: $intentos');
@@ -105,9 +117,12 @@ class Juego {
       } else {
         print('Comparación con ${pokemonAdivinado.nombre?.toUpperCase()}:');
         mostrarComparacion(pokemonAdivinado);
+        print('Te quedan $vidas vidas');
         print('Sigue intentando...');
       }
     } catch (e) {
+      vidas--;
+      print('Te quedan $vidas vidas');
       print('Pokemon no encontrado. Intenta con otro nombre.');
     }
   }
